@@ -6,7 +6,7 @@
 
 # Required Imports
 #import open3d as o3d
-from multiprocessing.pool import RUN
+#from multiprocessing.pool import RUN
 import os
 import time
 import numpy as np
@@ -42,6 +42,8 @@ def search(data):
             twist = TwistStamped()
             twist.linear.z = 1
             pub.publish(twist)
+            print('Close')
+            break
         # Else we want to continue looping through the list of defect locations
         else:
             #Continue looping
