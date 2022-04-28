@@ -1,14 +1,30 @@
-def find_Differences(file_name_PCD1, file_name_PCD2):
+def find_Differences(file_name_Clean_PCD, file_name_Defect_PCD):
     #Assuming Files are in the working directory
 
     # Imports
     import open3d as o3d
     import numpy as np
-    import matplotlib.pyplot as plt
+    from pytransform3d import rotations as pr
+    from pytransform3d import transformations as pt
+    from pytransform3d.transform_manager import TransformManager
+
+    # Transformations from: 
+    df2of = pt.transform_from_pq(np.array([-0.1, 0, 0.02, 0, 0, 0,0])) #Depth Frame to Optical Frame
+    bl2df = pt.transform_from_pq(np.array([0.126918, -0.467213, 0.624013, 0.721838, -0.691879, -0.00635957, -0.0145864])) #Base Link to Depth Frame
+
+    # USing TF Manager
+    tm = TransformManager()
+    tm.add_transform("depth_frame", "optical_frame", df2of)
+    tm.add_transform("base_link", "depth_frame", bl2df)
+
+    # Getting total TF
+    of2bl = tm.get_transform("optical_frame", "base_link")
+     # Storing as np matrix
+    Tf= np.asarray(of2bl)
 
     #Create PCD Objs
-    pcd_defect = o3d.io.read_point_cloud(file_name_PCD1)   # reading point cloud file
-    pcd_clean = o3d.io.read_point_cloud(file_name_PCD2)    # reading point cloud file
+    pcd_defect = o3d.io.read_point_cloud(file_name_Defect_PCD)   # reading point cloud file
+    pcd_clean = o3d.io.read_point_cloud(file_name_Clean_PCD)    # reading point cloud file
 
     pcddown_clean = pcd_clean.voxel_down_sample(voxel_size = 0.004)
     pcddown_clean.paint_uniform_color([1.0, 0.0, 0.0])
@@ -63,4 +79,15 @@ def find_Differences(file_name_PCD1, file_name_PCD2):
 
     o3d.visualization.draw_geometries([defect_cloud], point_show_normal= False)
 
-    return defect_loc
+    point =[]
+    for i in range(len(defect_loc)):
+        po = np.asarray(np.insert(defect_loc[i],3,0))
+        prs = np.reshape(po,(4,1))
+        p_tf = np.dot(Tf,prs)
+        p_tfrs = np.delete(np.reshape(p_tf,(1,4)),3)
+        print(p_tfrs)
+        point.append(p_tfrs)
+
+    defect_loc_BaseLink_frame=np.asarray(point) 
+
+    return defect_loc_BaseLink_frame
